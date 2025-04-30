@@ -1,0 +1,41 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+
+name: "@Hint-Services/mcp-private-github-search"
+description: "A TypeScript-based Model Context Protocol (MCP) server for private GitHub search"
+version: "0.1.1"
+
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    title: "MCP Private GitHub Search Configuration"
+    description: "Configuration options for the MCP Private GitHub Search server"
+    properties:
+      githubToken:
+        type: string
+        description: "Your GitHub token (get from https://github.com/settings/tokens)"
+      githubOwner:
+        type: string
+        description: "The owner of the GitHub repository"
+      githubRepo:
+        type: string
+        description: "The name of the GitHub repository"
+    required: ["githubToken", "githubOwner", "githubRepo"]
+  commandFunction: |-
+    (config) => ({
+      command: 'node',
+      args: ['build/index.js'],
+      env: {
+        NODE_ENV: 'production',
+        GITHUB_TOKEN: config.githubToken || '',
+        GITHUB_OWNER: config.githubOwner || '',
+        GITHUB_REPO: config.githubRepo || '',
+      }
+    })
+
+clients:
+  - claude
+  - cursor
+  - windsurf
+  - cline
+  - typescript
