@@ -71,16 +71,30 @@ export class GithubClient {
         query: z
           .string()
           .describe("Search query (uses GitHub Code Search syntax)"),
+        page: z
+          .number()
+          .optional()
+          .default(0)
+          .describe("Page number to retrieve (0-indexed)"),
+        perPage: z
+          .number()
+          .optional()
+          .default(100)
+          .describe("Number of results per page"),
       },
-      async ({ query }) => {
+      async ({ query, page = 0, perPage = 100 }) => {
         const repoQualifier = `repo:${this.config.owner}/${this.config.repo}`;
         const qualifiedQuery = `${query} ${repoQualifier}`;
         const searchResults = await this.handleRequest(async () => {
-          return this.octokit.search.code({ q: qualifiedQuery });
+          return this.octokit.search.code({
+            q: qualifiedQuery,
+            page,
+            per_page: perPage,
+          });
         });
         // Format results as a markdown list
         const formattedResults = searchResults.items
-          .map((item) => `- ${item.path} (score: ${item.score})`)
+          .map((item) => `- "${item.path}"`)
           .join("\n");
         return {
           // Return formatted text instead of raw JSON string

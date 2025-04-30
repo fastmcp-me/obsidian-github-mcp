@@ -35,7 +35,7 @@ const githubClient = new GithubClient({ githubToken, owner, repo });
  */
 const server = new McpServer({
   name: "mcp-private-github-search",
-  version: "0.1.0",
+  version: "0.1.1",
   capabilities: {
     tools: {},
     resources: {},

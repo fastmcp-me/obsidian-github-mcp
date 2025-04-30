@@ -96,6 +96,8 @@ Search for files (code search) within the configured repository based on a query
   name: 'searchFiles',
   arguments: {
     query: string  // Search query (uses GitHub Code Search syntax)
+    page: number  // Page number to retrieve (0-indexed)
+    perPage: number  // Number of results per page
   }
 }
 ```
