@@ -8,6 +8,7 @@ A Model Context Protocol (MCP) server that provides tools for searching private 
 ## Features
 
 - **GitHub Repository Search**: Search private GitHub repositories (you must have a GitHub token with access to the repository)
+- **Commit History Tracking**: Get commit history and optionally commit contents/diffs for the last X days
 - **Type-Safe Implementation**: Written in TypeScript with comprehensive type definitions
 - **Input Validation**: Robust validation for all API inputs using Zod schemas
 - **Error Handling**: Graceful error handling with informative messages
@@ -30,6 +31,10 @@ MCP Private GitHub Search provides the following tools for searching private Git
 ### Get File Information
 
 - **getFileContents**: Get the contents of a specific file in a repository
+
+### Repository History
+
+- **getCommitHistory**: Get commit history and optionally commit contents/diffs for the last X days
 
 ## Project Structure
 

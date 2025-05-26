@@ -11,6 +11,7 @@ A Model Context Protocol (MCP) server that provides tools for interacting with a
 
 - **Targeted GitHub Repository Integration**: Interact with files, issues, and code within a pre-configured repository.
 - **Built-in Rate Limiting**: Respects GitHub's API limits (automatically handled by `@octokit/rest`).
+- **Commit History Access**: Retrieve commit history and detailed changes for specified time periods
 - **Type-Safe Implementation**: Written in TypeScript with comprehensive type definitions
 - **Input Validation**: Robust validation for all API inputs using Zod schemas
 - **Error Handling**: Graceful error handling with informative messages
@@ -114,6 +115,25 @@ Search for issues within the configured repository based on a query.
   }
 }
 ```
+
+### getCommitHistory
+
+Get commit history and optionally commit contents/diffs for the configured repository within the last X days.
+
+```typescript
+{
+  name: 'getCommitHistory',
+  arguments: {
+    days: number,           // Number of days to look back (1-365)
+    includeDiffs?: boolean, // Include file changes/diffs (default: true)
+    author?: string,        // Filter by author username
+    maxCommits?: number,    // Max commits to return (default: 25, max: 50)
+    page?: number          // Page number (0-indexed, default: 0)
+  }
+}
+```
+
+**Note**: This tool focuses on showing actual file changes and diffs by default. It makes additional API calls to fetch detailed commit information, with lower default limits to balance detail with performance.
 
 ## Rate Limiting
 

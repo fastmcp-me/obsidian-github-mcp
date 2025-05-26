@@ -188,6 +188,16 @@ We follow strict TypeScript practices:
 - Use async/await for asynchronous operations
 - Follow the existing code structure and patterns
 
+### Commit History Tool (`getCommitHistory`)
+
+When working on the commit history tool:
+
+1. **Rate Limiting**: Be aware that the tool makes multiple API calls by default to fetch file changes
+2. **Response Size**: Implement truncation for large diffs
+3. **Error Handling**: Handle cases where commits may not exist or be accessible
+4. **Testing**: Always test with both small and large commit histories
+5. **Documentation**: Keep examples up to date with any parameter changes
+
 ### Tool Implementation
 
 When implementing new tools, follow this pattern:

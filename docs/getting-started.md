@@ -94,15 +94,16 @@ You have access to a private GitHub repository through the MCP Private GitHub Se
 Please help me manage my repository by:
 1. Showing me all the files matching a given search query
 2. Showing me all the issues matching a given search query
+3. Getting commit history with actual file changes and diffs for the last X days
 ```
 
 ### For GPT
 
 ```
 You have access to a private GitHub repository through function calls.
-First, get all files by calling the get_files function.
-Then, get issues by calling get_issues.
-You can add new issues with add_issue.
+First, get all files by calling the search_files function.
+Then, get issues by calling search_issues.
+You can also get commit history by calling getCommitHistory.
 ```
 
 ## Basic Workflow Examples
@@ -123,11 +124,42 @@ const issues = await mcp.invoke("privateGithubSearch", "search_issues", {
 // Get the contents of a specific file
 const fileContents = await mcp.invoke(
   "privateGithubSearch",
-  "get_file_contents",
+  "getFileContents",
   {
     filePath: "path/to/file.txt",
   }
 );
+```
+
+### Reviewing Recent Changes
+
+```typescript
+// Get recent commits from the last 7 days
+const recentCommits = await mcp.invoke(
+  "privateGithubSearch",
+  "getCommitHistory",
+  {
+    days: 7,
+  }
+);
+
+// Get commits with diffs from specific author (diffs included by default)
+const detailedCommits = await mcp.invoke(
+  "privateGithubSearch",
+  "getCommitHistory",
+  {
+    days: 30,
+    author: "octocat",
+    maxCommits: 25,
+  }
+);
+
+// Get commits for code review pagination
+const commitPage = await mcp.invoke("privateGithubSearch", "getCommitHistory", {
+  days: 14,
+  maxCommits: 20,
+  page: 0,
+});
 ```
 
 ## Troubleshooting

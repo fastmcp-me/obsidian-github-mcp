@@ -524,6 +524,47 @@ When you interact with Claude Desktop, it can now invoke the MCP tools you have 
    - Handle network requests safely
    - Format responses consistently
 
+## Testing the Commit History Tool
+
+### Unit Tests
+
+Test the date calculation logic:
+
+```typescript
+describe("getCommitHistory date calculations", () => {
+  it("should calculate correct date range for 7 days", () => {
+    const since = new Date();
+    since.setDate(since.getDate() - 7);
+    // Test logic
+  });
+});
+```
+
+### Integration Tests
+
+Test with actual GitHub API:
+
+```typescript
+describe("getCommitHistory integration", () => {
+  it("should fetch commits without diffs", async () => {
+    // Test basic functionality
+  });
+
+  it("should fetch commits with diffs", async () => {
+    // Test with includeDiffs: true
+  });
+});
+```
+
+### Performance Considerations
+
+When testing the tool (which includes diffs by default), be aware of:
+
+- Increased API calls (one per commit for diff details)
+- Potential rate limiting with larger commit counts
+- Larger response sizes due to diff content
+- Lower default maxCommits (25) to balance performance
+
 ## Publishing to Smithery
 
 If you have developed new tools or made local modifications and wish to share them, consider publishing your customized server:

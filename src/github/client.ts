@@ -140,5 +140,167 @@ export class GithubClient {
         };
       }
     );
+
+    // getCommitHistory tool - focuses on file changes and diffs
+    server.tool(
+      "getCommitHistory",
+      `Get commit history for the configured repository (${this.config.owner}/${this.config.repo}) within the last X days, focusing on actual file changes and diffs.`,
+      {
+        days: z
+          .number()
+          .min(1)
+          .max(365)
+          .describe("Number of days to look back for commits"),
+        includeDiffs: z
+          .boolean()
+          .optional()
+          .default(true)
+          .describe(
+            "Whether to include actual file changes/diffs (default: true)"
+          ),
+        author: z
+          .string()
+          .optional()
+          .describe("Filter commits by author username"),
+        maxCommits: z
+          .number()
+          .min(1)
+          .max(50)
+          .optional()
+          .default(25)
+          .describe("Maximum number of commits to return"),
+        page: z
+          .number()
+          .optional()
+          .default(0)
+          .describe("Page number for pagination (0-indexed)"),
+      },
+      async ({
+        days,
+        includeDiffs = true,
+        author,
+        maxCommits = 25,
+        page = 0,
+      }) => {
+        // Calculate date range
+        const since = new Date();
+        since.setDate(since.getDate() - days);
+        const sinceISO = since.toISOString();
+
+        console.error("sinceISO", sinceISO);
+
+        // Fetch commits list
+        const commits = await this.handleRequest(async () => {
+          return this.octokit.repos.listCommits({
+            owner: this.config.owner,
+            repo: this.config.repo,
+            since: sinceISO,
+            // author: author,
+            page: page,
+            per_page: maxCommits,
+          });
+        });
+
+        if (commits.length === 0) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `No commits found in the last ${days} days since ${sinceISO}${
+                  author ? ` from author ${author}` : ""
+                }.`,
+              },
+            ],
+          };
+        }
+
+        let formattedOutput = `Found ${
+          commits.length
+        } commits in the last ${days} days${
+          author ? ` from ${author}` : ""
+        }:\n\n`;
+
+        if (includeDiffs) {
+          // Fetch detailed commit information with diffs
+          const detailedCommits = await Promise.all(
+            commits.slice(0, maxCommits).map(async (commit) => {
+              const detailed = await this.handleRequest(async () => {
+                return this.octokit.repos.getCommit({
+                  owner: this.config.owner,
+                  repo: this.config.repo,
+                  ref: commit.sha,
+                });
+              });
+              return detailed;
+            })
+          );
+
+          // Format results with diffs
+          for (const commit of detailedCommits) {
+            const shortSha = commit.sha.substring(0, 7);
+            const commitUrl = `https://github.com/${this.config.owner}/${this.config.repo}/commit/${commit.sha}`;
+
+            formattedOutput += `## Commit ${shortSha} (${commit.sha})\n`;
+            formattedOutput += `**${commit.commit.message.split("\n")[0]}**\n`;
+            formattedOutput += `Author: ${commit.commit.author?.name} <${commit.commit.author?.email}>\n`;
+            formattedOutput += `Date: ${commit.commit.author?.date}\n`;
+            formattedOutput += `URL: ${commitUrl}\n\n`;
+
+            if (commit.files && commit.files.length > 0) {
+              formattedOutput += `### Files Changed (${commit.files.length}):\n`;
+              for (const file of commit.files) {
+                const additions = file.additions || 0;
+                const deletions = file.deletions || 0;
+                formattedOutput += `- ${file.filename} (+${additions}, -${deletions})\n`;
+              }
+              formattedOutput += "\n### File Changes:\n\n";
+
+              for (const file of commit.files) {
+                formattedOutput += `#### ${file.filename}\n`;
+                if (file.patch) {
+                  // Truncate large diffs for readability
+                  let patch = file.patch;
+                  const maxPatchLength = 8000; // Essay-length for note-taking
+                  if (patch.length > maxPatchLength) {
+                    patch = `${patch.substring(
+                      0,
+                      maxPatchLength
+                    )}\n\n... (diff truncated for readability) ...`;
+                  }
+                  formattedOutput += `\`\`\`diff\n${patch}\n\`\`\`\n\n`;
+                } else {
+                  formattedOutput +=
+                    "_No diff available (binary file or no changes to display)_\n\n";
+                }
+              }
+            } else {
+              formattedOutput += "No file changes detected.\n\n";
+            }
+            formattedOutput += "---\n\n";
+          }
+        } else {
+          // Just show commit metadata without diffs
+          for (const commit of commits) {
+            const shortSha = commit.sha.substring(0, 7);
+            const commitUrl = `https://github.com/${this.config.owner}/${this.config.repo}/commit/${commit.sha}`;
+
+            formattedOutput += `## Commit ${shortSha}\n`;
+            formattedOutput += `**${commit.commit.message.split("\n")[0]}**\n`;
+            formattedOutput += `Author: ${commit.commit.author?.name} <${commit.commit.author?.email}>\n`;
+            formattedOutput += `Date: ${commit.commit.author?.date}\n`;
+            formattedOutput += `URL: ${commitUrl}\n\n`;
+          }
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: formattedOutput,
+            },
+          ],
+        };
+      }
+    );
   }
 }
