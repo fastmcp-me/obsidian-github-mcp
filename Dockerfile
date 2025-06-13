@@ -8,11 +8,14 @@ WORKDIR /app
 # Copy the current directory contents into the container at /app
 COPY . .
 
+# Install pnpm
+RUN npm install -g pnpm
+
 # Install any needed packages
-RUN npm install
+RUN pnpm install
 
 # Compile the TypeScript code
-RUN npm run build
+RUN pnpm run build
 
 # Use a smaller Node.js runtime for the release build
 FROM node:18-alpine AS release
@@ -26,8 +29,11 @@ COPY --from=build /app/build /app/build
 # Copy necessary package.json files
 COPY --from=build /app/package.json /app/pnpm-lock.yaml /app/
 
-# Install only production dependencies
-RUN npm install --omit=dev --ignore-scripts
+# Install pnpm in release stage
+RUN npm install -g pnpm
+
+# Install only production dependencies  
+RUN pnpm install --prod --ignore-scripts
 
 # Make port 8080 available to the world outside this container
 EXPOSE 8080
