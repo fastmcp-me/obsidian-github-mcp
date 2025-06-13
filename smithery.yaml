@@ -2,7 +2,7 @@
 
 name: "@Hint-Services/obsidian-github-mcp"
 description: "A TypeScript-based Model Context Protocol (MCP) server for accessing GitHub repositories containing Obsidian vaults"
-version: "0.2.0"
+version: "0.3.0"
 
 startCommand:
   type: stdio

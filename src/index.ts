@@ -37,7 +37,7 @@ const githubClient = new GithubClient({ githubToken, owner, repo });
  */
 const server = new McpServer({
   name: "obsidian-github-mcp",
-  version: "0.2.0",
+  version: "0.3.0",
   capabilities: {
     tools: {},
     resources: {},

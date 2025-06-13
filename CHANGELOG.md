@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-06-13
+
+### Added
+- **Enhanced `searchFiles` tool** with `searchIn` parameter supporting `filename`, `path`, `content`, `all` modes
+- Filename search using GitHub's `filename:` qualifier for exact filename matching
+- Path search using `in:path` qualifier for file path matching
+- Comprehensive search mode using `in:file,path` qualifier (new default)
+- Match type indicators in search results (📝 filename, 📁 path, 📄 content)
+- Search tips displayed when no results found
+
+### Changed
+- Default search behavior now searches across filenames, paths, and content
+- Improved GitHub search query construction with proper qualifiers
+- Enhanced result formatting with match reasoning
+
+### Fixed
+- Issue where filename searches like "OKR 2025" required content matches
+
 ## [0.2.0] - 2025-05-26
 
 ### Added
