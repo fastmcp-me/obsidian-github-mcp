@@ -1,15 +1,15 @@
 # Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
 
-name: "@Hint-Services/mcp-private-github-search"
-description: "A TypeScript-based Model Context Protocol (MCP) server for private GitHub search"
+name: "@Hint-Services/obsidian-github-mcp"
+description: "A TypeScript-based Model Context Protocol (MCP) server for accessing GitHub repositories containing Obsidian vaults"
 version: "0.1.1"
 
 startCommand:
   type: stdio
   configSchema:
     type: object
-    title: "MCP Private GitHub Search Configuration"
-    description: "Configuration options for the MCP Private GitHub Search server"
+    title: "Obsidian GitHub MCP Configuration"
+    description: "Configuration options for the Obsidian GitHub MCP server"
     properties:
       githubToken:
         type: string

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-MCP Private GitHub Search is a Model Context Protocol (MCP) server that provides tools for searching and analyzing private GitHub repositories. It acts as a bridge between AI assistants and GitHub's API, enabling file search, issue search, content retrieval, and commit history analysis.
+Obsidian GitHub MCP is a Model Context Protocol (MCP) server that connects AI assistants to GitHub repositories containing Obsidian vaults. It enables seamless access to your knowledge base stored on GitHub, allowing AI assistants to read, search, and analyze your Obsidian notes and documentation.
 
 ## Key Commands
 
@@ -35,12 +35,13 @@ The project follows a clean modular architecture:
 - **`src/github/types.ts`**: TypeScript type definitions for configuration.
 
 ### Available MCP Tools
-1. **`getFileContents`**: Retrieves raw file content from repository
-2. **`searchFiles`**: Searches files with GitHub code search syntax (paginated)
-3. **`searchIssues`**: Searches repository issues
-4. **`getCommitHistory`**: Retrieves commit history with optional diffs (supports time-based filtering)
+1. **`getFileContents`**: Retrieves contents of specific notes, documents, or files from your Obsidian vault
+2. **`searchFiles`**: Searches for notes and documents within your vault using GitHub's search syntax (paginated)
+3. **`searchIssues`**: Searches for issues and discussions related to your knowledge base projects
+4. **`getCommitHistory`**: Tracks how your knowledge base has evolved over time with detailed commit history and diffs
 
 ### Key Design Patterns
+- **Obsidian-focused design**: Optimized for accessing GitHub repositories containing Obsidian vaults
 - **Environment-based configuration**: Repository details via `GITHUB_TOKEN`, `GITHUB_OWNER`, `GITHUB_REPO`
 - **Fail-fast initialization**: Server won't start without required configuration
 - **Centralized error handling**: All GitHub requests go through `handleRequest` wrapper

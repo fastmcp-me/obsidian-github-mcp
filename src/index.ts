@@ -1,12 +1,14 @@
 /**
- * MCP Server Starter Template
+ * Obsidian GitHub MCP Server
  *
- * This is a reference implementation of a Model Context Protocol (MCP) server.
- * It demonstrates best practices for:
- * - Server initialization and configuration
- * - Tool registration and management
- * - Error handling and logging
- * - Resource cleanup
+ * A Model Context Protocol server for accessing GitHub repositories containing Obsidian vaults.
+ * This server enables AI assistants to interact with your Obsidian knowledge base stored in GitHub.
+ *
+ * Features:
+ * - File content retrieval from Obsidian vaults
+ * - Search functionality for notes and documentation
+ * - Issue tracking integration
+ * - Commit history analysis for knowledge evolution
  *
  * For more information about MCP, visit:
  * https://modelcontextprotocol.io
@@ -34,8 +36,8 @@ const githubClient = new GithubClient({ githubToken, owner, repo });
  * Create a new MCP server instance with full capabilities
  */
 const server = new McpServer({
-  name: "mcp-private-github-search",
-  version: "0.1.1",
+  name: "obsidian-github-mcp",
+  version: "0.2.0",
   capabilities: {
     tools: {},
     resources: {},

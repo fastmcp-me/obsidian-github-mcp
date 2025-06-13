@@ -31,7 +31,7 @@ export class GithubClient {
   registerGithubTools(server: McpServer) {
     server.tool(
       "getFileContents",
-      `Get the contents of a specific file in the configured repository (${this.config.owner}/${this.config.repo}).`,
+      `Retrieve the contents of a specific note, document, or file from your Obsidian vault stored in GitHub (${this.config.owner}/${this.config.repo}). Perfect for accessing your knowledge base content.`,
       {
         filePath: z
           .string()
@@ -66,7 +66,7 @@ export class GithubClient {
     // Placeholder for searchFiles tool
     server.tool(
       "searchFiles",
-      `Search for files within the configured repository (${this.config.owner}/${this.config.repo}).`,
+      `Search for notes, documents, and files within your Obsidian vault on GitHub (${this.config.owner}/${this.config.repo}). Find specific knowledge base content using GitHub's powerful search syntax.`,
       {
         query: z
           .string()
@@ -111,7 +111,7 @@ export class GithubClient {
     // Placeholder for searchIssues tool
     server.tool(
       "searchIssues",
-      `Search for issues within the configured repository (${this.config.owner}/${this.config.repo}).`,
+      `Search for issues and discussions in your Obsidian vault repository (${this.config.owner}/${this.config.repo}). Great for tracking tasks, project management, and collaborative knowledge work.`,
       {
         query: z
           .string()
@@ -144,7 +144,7 @@ export class GithubClient {
     // getCommitHistory tool - focuses on file changes and diffs
     server.tool(
       "getCommitHistory",
-      `Get commit history for the configured repository (${this.config.owner}/${this.config.repo}) within the last X days, focusing on actual file changes and diffs.`,
+      `Track the evolution of your Obsidian vault knowledge base by retrieving commit history from GitHub (${this.config.owner}/${this.config.repo}). See how your notes and ideas have developed over time with detailed diffs.`,
       {
         days: z
           .number()
