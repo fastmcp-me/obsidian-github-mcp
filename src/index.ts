@@ -68,8 +68,8 @@ async function main() {
     const repo = process.env.GITHUB_REPO;
 
     if (!githubToken || !owner || !repo) {
-      throw new Error(
-        "Environment variables GITHUB_TOKEN, GITHUB_OWNER, and GITHUB_REPO are required"
+      console.error(
+        "Environment variables GITHUB_TOKEN, GITHUB_OWNER, and GITHUB_REPO are required for STDIO transport"
       );
     }
 
