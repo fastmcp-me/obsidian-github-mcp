@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-09-14
+
+### Added
+- **New `diagnoseSearch` tool** for comprehensive repository health diagnostics
+  - Analyzes repository size, privacy settings, and search capabilities
+  - Detects GitHub indexing issues and size limitations
+  - Provides specific recommendations for search problems
+- **Enhanced search diagnostics** when no results are found
+  - Automatic repository analysis when search returns empty results
+  - Intelligent detection of unindexed or oversized repositories
+  - Clear explanations of search limitations and alternative approaches
+- **Improved error handling** with specific GitHub API error messages
+  - Better validation error messages with query suggestions
+  - Rate limiting guidance with retry instructions
+  - Authentication error detection with scope recommendations
+
+### Improved
+- **Search result formatting** with enhanced match indicators and context
+- **Build system stability** with workspace dependency fixes and Docker compatibility
+- **Test coverage** with comprehensive diagnostic feature testing
+- **User experience** with clearer error messages and actionable guidance
+
+### Fixed
+- Build errors related to workspace dependencies and Docker configurations
+- Smithery build compatibility issues
+- Type casting issues for improved type safety
+
+### Documentation
+- **Migration Guide** for transitioning from Docker to HTTP streaming interface
+- Comprehensive examples for diagnostic tools and troubleshooting workflows
+
 ## [0.3.0] - 2025-06-13
 
 ### Added

@@ -28,6 +28,139 @@ export class GithubClient {
     }
   }
 
+  // Run diagnostics when search returns no results
+  private async runSearchDiagnostics(_originalQuery: string): Promise<{
+    repoSize?: number;
+    repoSizeGB?: number;
+    isPrivate?: boolean;
+    defaultBranch?: string;
+    basicSearchWorks?: boolean;
+    filesFound?: number;
+    repoIndexed?: boolean;
+    isLarge?: boolean;
+    diagnosticError?: string;
+  }> {
+    try {
+      // Test 1: Repository accessibility
+      const repoInfo = await this.handleRequest(async () => {
+        return this.octokit.repos.get({
+          owner: this.config.owner,
+          repo: this.config.repo,
+        });
+      });
+
+      // Test 2: Basic search functionality with simple query
+      let basicSearchWorks = false;
+      let basicSearchCount = 0;
+      try {
+        const basicTest = await this.handleRequest(async () => {
+          return this.octokit.search.code({
+            q: `repo:${this.config.owner}/${this.config.repo} extension:md`,
+            per_page: 1,
+          });
+        });
+        basicSearchWorks = true;
+        basicSearchCount = basicTest.total_count;
+      } catch (_error) {
+        basicSearchWorks = false;
+      }
+
+      const repoSizeKB = repoInfo.size;
+      const repoSizeGB = repoSizeKB / (1024 * 1024);
+      const isLarge = repoSizeGB > 50;
+
+      return {
+        repoSize: repoSizeKB,
+        repoSizeGB: repoSizeGB,
+        isPrivate: repoInfo.private,
+        defaultBranch: repoInfo.default_branch,
+        basicSearchWorks,
+        filesFound: basicSearchCount,
+        repoIndexed: basicSearchWorks && basicSearchCount > 0,
+        isLarge,
+      };
+    } catch (error) {
+      return {
+        diagnosticError: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  // Format response when no search results are found
+  private formatNoResultsResponse(
+    _searchResults: { total_count: number },
+    diagnostics: {
+      diagnosticError?: string;
+      repoIndexed?: boolean;
+      isLarge?: boolean;
+      repoSizeGB?: number;
+      isPrivate?: boolean;
+      defaultBranch?: string;
+      filesFound?: number;
+    },
+    query: string,
+    searchIn: string
+  ): { content: Array<{ type: "text"; text: string }> } {
+    let resultText = `Found 0 files matching "${query}"`;
+    if (searchIn !== "all") {
+      resultText += ` in ${searchIn}`;
+    }
+    resultText += "\n\n";
+
+    if (diagnostics.diagnosticError) {
+      resultText += `⚠️ **Search System Issue**: ${diagnostics.diagnosticError}\n\n`;
+    } else if (!diagnostics.repoIndexed) {
+      resultText +=
+        "⚠️ **Repository May Not Be Indexed**: GitHub might not have indexed this repository for search.\n";
+      resultText += "This can happen with:\n";
+      resultText += "- New repositories (indexing takes time)\n";
+      if (diagnostics.isLarge) {
+        resultText += `- Large repositories (${diagnostics.repoSizeGB?.toFixed(
+          2
+        )} GB exceeds 50 GB limit)\n`;
+      }
+      if (diagnostics.isPrivate) {
+        resultText += "- Private repositories with indexing issues\n";
+      }
+      resultText += "\n**Try**:\n";
+      resultText += "- Search directly on GitHub.com to confirm\n";
+      resultText +=
+        "- Use the diagnoseSearch tool for detailed diagnostics\n\n";
+    } else {
+      resultText += "📊 **Search Debug Info**:\n";
+      resultText += `- Repository: ${
+        diagnostics.isPrivate ? "Private" : "Public"
+      } (${diagnostics.repoSizeGB?.toFixed(3)} GB)\n`;
+      resultText += `- Default branch: ${diagnostics.defaultBranch} (only branch searchable)\n`;
+      resultText += `- Files in repo: ${diagnostics.filesFound} found\n`;
+      resultText += `- Search query used: \`${query}\`\n\n`;
+
+      resultText += "**Possible reasons for no results**:\n";
+      resultText += "- The search term doesn't exist in the repository\n";
+      resultText +=
+        "- Content might be in non-default branches (not searchable)\n";
+      resultText += "- Files might be larger than 384 KB (not indexed)\n\n";
+    }
+
+    // Add search tips
+    resultText += "💡 **Search Tips:**\n";
+    resultText += `- Try \`searchIn: "filename"\` to search only filenames\n`;
+    resultText += `- Try \`searchIn: "path"\` to search file paths\n`;
+    resultText += `- Try \`searchIn: "content"\` to search file contents\n`;
+    resultText += `- Use quotes for exact phrases: "exact phrase"\n`;
+    resultText += "- Use wildcards: `*.md` for markdown files\n";
+    resultText += "- Try simpler or partial search terms";
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: resultText,
+        },
+      ],
+    };
+  }
+
   registerGithubTools(server: McpServer) {
     server.tool(
       "getFileContents",
@@ -58,7 +191,7 @@ export class GithubClient {
         }
 
         return {
-          content: [{ type: "text", text: fileContent }],
+          content: [{ type: "text" as const, text: fileContent }],
         };
       }
     );
@@ -92,6 +225,7 @@ export class GithubClient {
           .describe("Number of results per page"),
       },
       async ({ query, searchIn = "all", page = 0, perPage = 100 }) => {
+        // Empty query is allowed - useful for listing files
         const repoQualifier = `repo:${this.config.owner}/${this.config.repo}`;
 
         // Build search query based on searchIn parameter
@@ -118,13 +252,42 @@ export class GithubClient {
           qualifiedQuery = `${query} in:file,path ${repoQualifier}`;
         }
 
-        const searchResults = await this.handleRequest(async () => {
-          return this.octokit.search.code({
-            q: qualifiedQuery,
-            page,
-            per_page: perPage,
+        let searchResults: {
+          items: Array<{ name: string; path: string }>;
+          total_count: number;
+        };
+        try {
+          searchResults = await this.handleRequest(async () => {
+            return this.octokit.search.code({
+              q: qualifiedQuery,
+              page,
+              per_page: perPage,
+            });
           });
-        });
+        } catch (error) {
+          // Enhanced error messages with specific GitHub search issues
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          if (errorMessage.includes("validation failed")) {
+            throw new Error(
+              `GitHub search query invalid: "${qualifiedQuery}". Try simpler terms or check syntax.`
+            );
+          }
+          if (errorMessage.includes("rate limit")) {
+            throw new Error(
+              "GitHub code search rate limit exceeded. Wait a moment and try again."
+            );
+          }
+          if (
+            errorMessage.includes("Forbidden") ||
+            errorMessage.includes("401")
+          ) {
+            throw new Error(
+              "GitHub API access denied. Check that your token has 'repo' scope for private repositories."
+            );
+          }
+          throw error; // Re-throw other errors
+        }
 
         // Enhanced formatting with file sizes and relevance indicators
         const formattedResults = searchResults.items
@@ -162,20 +325,21 @@ export class GithubClient {
         }
         resultText += `:\n\n${formattedResults}`;
 
-        // Add search tips if no results found
+        // If no results, run diagnostics and provide enhanced response
         if (searchResults.total_count === 0) {
-          resultText += "\n\n💡 **Search Tips:**\n";
-          resultText += `- Try \`searchIn: "filename"\` to search only filenames\n`;
-          resultText += `- Try \`searchIn: "path"\` to search file paths\n`;
-          resultText += `- Try \`searchIn: "content"\` to search file contents\n`;
-          resultText += `- Use quotes for exact phrases: \"OKR 2025\"\n`;
-          resultText += "- Use wildcards: `path:*.md` for markdown files";
+          const diagnostics = await this.runSearchDiagnostics(query);
+          return this.formatNoResultsResponse(
+            searchResults,
+            diagnostics,
+            query,
+            searchIn
+          );
         }
 
         return {
           content: [
             {
-              type: "text",
+              type: "text" as const,
               text: resultText,
             },
           ],
@@ -208,7 +372,7 @@ export class GithubClient {
           // Return formatted text instead of raw JSON string
           content: [
             {
-              type: "text",
+              type: "text" as const,
               text: `Found ${searchResults.total_count} issues:\n${formattedResults}`,
             },
           ],
@@ -280,7 +444,7 @@ export class GithubClient {
           return {
             content: [
               {
-                type: "text",
+                type: "text" as const,
                 text: `No commits found in the last ${days} days since ${sinceISO}${
                   author ? ` from author ${author}` : ""
                 }.`,
@@ -370,11 +534,135 @@ export class GithubClient {
         return {
           content: [
             {
-              type: "text",
+              type: "text" as const,
               text: formattedOutput,
             },
           ],
         };
+      }
+    );
+
+    // diagnoseSearch tool for repository diagnostics
+    server.tool(
+      "diagnoseSearch",
+      `Diagnose search functionality and repository configuration for your Obsidian vault on GitHub (${this.config.owner}/${this.config.repo}). Verifies repository connectivity, search capabilities, and checks if repository size is within GitHub's indexing limits.`,
+      {},
+      async () => {
+        try {
+          // Get repository information
+          const repoInfo = await this.handleRequest(async () => {
+            return this.octokit.repos.get({
+              owner: this.config.owner,
+              repo: this.config.repo,
+            });
+          });
+
+          // Test search functionality with a simple query
+          let searchWorks = false;
+          let searchError: string | null = null;
+          let searchResultCount = 0;
+
+          try {
+            const testSearch = await this.handleRequest(async () => {
+              return this.octokit.search.code({
+                q: `repo:${this.config.owner}/${this.config.repo} extension:md`,
+                per_page: 1,
+              });
+            });
+            searchWorks = true;
+            searchResultCount = testSearch.total_count;
+          } catch (error) {
+            searchWorks = false;
+            searchError =
+              error instanceof Error ? error.message : String(error);
+          }
+
+          // GitHub's code search limitations
+          const MAX_INDEXED_SIZE_GB = 50; // GitHub doesn't index repos > ~50GB
+          const repoSizeGB = repoInfo.size / (1024 * 1024); // Convert KB to GB
+          const isWithinSizeLimit = repoSizeGB <= MAX_INDEXED_SIZE_GB;
+
+          // Format diagnostic output
+          let diagnosticOutput = "# Repository Search Diagnostics\n\n";
+          diagnosticOutput += "## Repository Information\n";
+          diagnosticOutput += `- **Repository**: ${this.config.owner}/${this.config.repo}\n`;
+          diagnosticOutput += `- **Visibility**: ${
+            repoInfo.private ? "Private" : "Public"
+          }\n`;
+          diagnosticOutput += `- **Size**: ${repoSizeGB.toFixed(3)} GB (${(
+            repoInfo.size / 1024
+          ).toFixed(2)} MB)\n`;
+          diagnosticOutput += `- **Default Branch**: ${repoInfo.default_branch}\n\n`;
+
+          diagnosticOutput += "## Search Capabilities\n";
+          diagnosticOutput += `- **Search API Access**: ${
+            searchWorks ? "✅ Working" : "❌ Failed"
+          }\n`;
+          diagnosticOutput += `- **Indexed Branch**: Only '${repoInfo.default_branch}' branch is searchable\n`;
+
+          if (searchWorks) {
+            diagnosticOutput += `- **Markdown Files Found**: ${searchResultCount}\n`;
+          } else if (searchError) {
+            diagnosticOutput += `- **Error**: ${searchError}\n`;
+          }
+
+          diagnosticOutput += `- **Within Size Limit**: ${
+            isWithinSizeLimit
+              ? `✅ Yes (${repoSizeGB.toFixed(
+                  3
+                )} GB < ${MAX_INDEXED_SIZE_GB} GB)`
+              : `⚠️ No (${repoSizeGB.toFixed(3)} GB > ${MAX_INDEXED_SIZE_GB} GB)`
+          }\n\n`;
+
+          // Add recommendations
+          diagnosticOutput += "## Recommendations\n";
+
+          if (!searchWorks && repoInfo.private) {
+            diagnosticOutput += `- ⚠️ **Private Repository**: Ensure your GitHub token has the 'repo' scope for full access to private repositories.\n`;
+          }
+
+          if (!isWithinSizeLimit) {
+            diagnosticOutput += `- ⚠️ **Large Repository**: GitHub's code search doesn't index repositories larger than ~${MAX_INDEXED_SIZE_GB} GB. Consider:\n`;
+            diagnosticOutput +=
+              "  - Using file path navigation instead of search for specific files\n";
+            diagnosticOutput +=
+              "  - Splitting your vault into multiple repositories\n";
+            diagnosticOutput +=
+              "  - Using getFileContents tool with known paths\n";
+            diagnosticOutput +=
+              "  - Note: Individual files must be < 384 KB to be searchable\n";
+          }
+
+          if (searchWorks && searchResultCount === 0) {
+            diagnosticOutput +=
+              "- ℹ️ **No Markdown Files**: No .md files found in the default branch. Your vault might be empty, use different file extensions, or have content in other branches.\n";
+          }
+
+          if (searchWorks && isWithinSizeLimit) {
+            diagnosticOutput +=
+              "- ✅ **All Systems Operational**: Repository is properly configured and searchable!\n";
+          }
+
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: diagnosticOutput,
+              },
+            ],
+          };
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: `Failed to diagnose repository: ${
+                  error instanceof Error ? error.message : String(error)
+                }\n\nPlease check your GITHUB_TOKEN, GITHUB_OWNER, and GITHUB_REPO configuration.`,
+              },
+            ],
+          };
+        }
       }
     );
   }
